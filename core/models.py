@@ -8,6 +8,8 @@ from django.conf import settings
 from django.dispatch import receiver
 from django.db.models.signals import post_save, post_delete
 
+from core.vagrant import Vagrant
+
 class VirtualMachine(models.Model):
     #: Name of the virtual machine in digital puddle
     name = models.CharField(max_length = 128)
@@ -23,28 +25,14 @@ class VirtualMachine(models.Model):
 VAGRANTFILE_API_VERSION = "2"
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     config.vm.box = "{0}"
+    config.vm.network "public_network"
 end
 """
         return template.format(self.vagrant_image)
     
     def get_vagrant_dir(self):
         return path.join(settings.VM_DIR, str(self.pk))
-    
-    def run_vagrant_command(self, *args):
-        """
-        This function will basically change directories
-        and then call a vagrant command.
-        """
         
-        # Change to my working directory
-        current_directory = os.getcwd()
-        
-        os.chdir(self.get_vagrant_dir())
-        subprocess.call(['vagrant'] + list(args))
-        
-        # Make sure we change the state at the end
-        os.chdir(current_directory)
-    
     def __unicode__(self):
         return self.name
     
@@ -67,8 +55,12 @@ def update_vagrant_config(instance, created, **kwargs):
         
 @receiver(post_delete, sender=VirtualMachine)
 def delete_vagrant_config(instance, **kwargs):
-    instance.run_vagrant_command('destroy')
+    """
+    Make sure we clean up a vagrant instance if we destroy
+    the model.
+    """
     
+    Vagrant(instance.get_vagrant_dir()).destroy()
     shutil.rmtree(instance.get_vagrant_dir(),
                   ignore_errors=True)
         

@@ -1,11 +1,38 @@
 import shutil
 from os import path
 
-from django.test import TestCase, override_settings
+from django.test import TestCase, override_settings, Client
 from django.conf import settings
+from django.core.urlresolvers import reverse
 
 from core.models import VirtualMachine
 
+@override_settings(VM_DIR='/tmp/vms')
+class TestViews(TestCase):
+    
+    def setUp(self):
+        self.client = Client()
+        
+    def tearDown(self):
+         shutil.rmtree(settings.VM_DIR, ignore_errors=True)
+
+    def test_create_virtual_machine(self):
+        num_vms = VirtualMachine.objects.all().count()
+        url = reverse('digitalpuddle.create_virtual_machine')
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        
+        response = self.client.post(url, {})
+        self.assertFormError(response, 'form',
+                             'name', 'This field is required.')
+        
+        response = self.client.post(url, {'name' : 'foobar',
+                                'vagrant_image' : 'baz' })
+        
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(VirtualMachine.objects.all().count(),
+                         num_vms + 1)
+                
 @override_settings(VM_DIR='/tmp/vms')
 class VirtualMachineTestCase(TestCase):
     

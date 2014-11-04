@@ -1,0 +1,14 @@
+VAGRANTFILE_API_VERSION = "2"
+Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+    config.vm.box = "{{ vm.vagrant_image }}"
+    
+    {% if vm.bridge_network %}
+    config.vm.network "public_network"
+    {% endif %}
+    
+    config.vm.provider "virtualbox" do |v|
+        v.name = "{{ vm.name }}"
+        v.memory = "{{ vm.memory }}"
+        v.cpus = "{{ vm.cpus }}"
+    end
+end

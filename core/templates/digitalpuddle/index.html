@@ -1,5 +1,19 @@
 {% extends "base.html" %}
 
 {% block content %}
-Hello world
+<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/0.9.16/socket.io.min.js"></script>
+<script type="text/javascript" src="https://code.jquery.com/jquery-2.1.1.min.js"></script>
+
+<script type="text/javascript" charset="utf-8">
+    var socket = io.connect("/console");
+    socket.on('console_data', function(data) {
+        console.log(data);
+        $("#console-output").append(data);
+    });
+    
+</script>
+<button>Make it Rain</button>
+<pre id="console-output">
+
+</pre>
 {% endblock %}
