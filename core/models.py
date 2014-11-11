@@ -7,6 +7,7 @@ from django.db import models
 from django.conf import settings
 from django.dispatch import receiver
 from django.db.models.signals import post_save, post_delete
+from django.core.urlresolvers import reverse
 
 from core.vagrant import Vagrant
 
@@ -15,6 +16,8 @@ class VirtualMachine(models.Model):
     name = models.CharField(max_length = 128)
     #: Vagrant image which should be used to build this VM
     vagrant_image = models.CharField(max_length = 256)
+    #: What is the last known state of the VM?
+    status = models.CharField(max_length = 64)
     
     def to_vagrant_config(self):
         """
@@ -25,13 +28,15 @@ class VirtualMachine(models.Model):
 VAGRANTFILE_API_VERSION = "2"
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     config.vm.box = "{0}"
-    config.vm.network "public_network"
 end
 """
         return template.format(self.vagrant_image)
     
     def get_vagrant_dir(self):
         return path.join(settings.VM_DIR, str(self.pk))
+    
+    def get_absolute_url(self):
+        return reverse('digitalpuddle.view_puddle', args=[self.pk])
         
     def __unicode__(self):
         return self.name
@@ -60,7 +65,7 @@ def delete_vagrant_config(instance, **kwargs):
     the model.
     """
     
-    Vagrant(instance.get_vagrant_dir()).destroy()
+    Vagrant(instance).destroy()
     shutil.rmtree(instance.get_vagrant_dir(),
                   ignore_errors=True)
         

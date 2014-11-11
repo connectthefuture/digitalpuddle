@@ -10,6 +10,7 @@ from socketio.namespace import BaseNamespace
 from socketio.sdjango import namespace
 
 from core.models import VirtualMachine
+from core.vagrant import Vagrant
 
 allowed_commands = ["up", "halt"]
 
@@ -38,15 +39,11 @@ class ConsoleNamespace(BaseNamespace):
         Called whenever the socket recieves a chat message. It
         will then broadcast the message to the rest of the channel.
         """
-        
-        print data
-        
-       # try:
-        vm = VirtualMachine.objects.get(id = data["vm"])
-        #except:
-            
-        #    self.emit('error', "Invalid vm")
-        #    return
+        try:
+            vm = VirtualMachine.objects.get(id = data["vm"])
+        except KeyError:
+            self.emit('error', "Invalid vm")
+            return
 
         if (data["command"] in allowed_commands):
             self.process_command(vm, data["command"])
@@ -55,7 +52,8 @@ class ConsoleNamespace(BaseNamespace):
             return
         
     def process_command(self, vm, command):
-        print "starting vagrant..."
+        # TODO: Rewrite this to use the Vagrant class
+        self.emit('console_data', "Running vagrant {0}\n".format(command))
         current_directory = os.getcwd()
 
         os.chdir(vm.get_vagrant_dir())
@@ -76,4 +74,12 @@ class ConsoleNamespace(BaseNamespace):
         lines = non_block_read(p.stdout)   
         self.emit('console_data', lines)
         
+        self.emit('console_data', "Finished running vagrant {0}\n".format(command))
+        
+        # Check if we should update the machine state
+        if (command in ["up", "halt"]):
+            vm.status = Vagrant(vm).status()
+            vm.save()
+            self.emit('status_change', vm.status)
+            
         print "Done in here."

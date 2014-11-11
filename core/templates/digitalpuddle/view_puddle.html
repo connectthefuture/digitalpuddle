@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h3 style="display:run-in;">{{ vm }}</h3> 
+Status: <font id="vm-status">{{ vm.status }}</font>
+<div class="row">
+    <div class="col-md-4">
+        <ul class="nav nav-tabs" role="tablist">
+        <li role="presentation" class="active"><a href="#overview" role="tab" data-toggle="tab">Overview</a></li>
+        <li role="presentation"><a href="#profile" role="tab" data-toggle="tab">Profile</a></li>
+        <li role="presentation"><a href="#messages" role="tab" data-toggle="tab">Messages</a></li>
+        <li role="presentation"><a href="#settings" role="tab" data-toggle="tab">Settings</a></li>
+        </ul>
+
+        <!-- Tab panes -->
+        <div class="tab-content">
+        <div role="tabpanel" class="tab-pane active" id="overview">
+            <div id="control-buttons">
+                <button class="btn" id="start-button">Start Puddle</button>
+                <button class="btn" id="halt-button">Dry Puddle</button>
+            </div>
+        </div>
+        <div role="tabpanel" class="tab-pane" id="profile">...</div>
+        <div role="tabpanel" class="tab-pane" id="messages">...</div>
+        <div role="tabpanel" class="tab-pane" id="settings">...</div>
+        </div>
+    </div>
+    <div class="col-md8">
+        Console Output
+        <pre id="console-output"></pre>
+    </div>
+</div>
+{% endblock %}
+
+{% block additional_scripts %}
+<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/0.9.16/socket.io.min.js"></script>
+<script type="text/javascript" src="https://code.jquery.com/jquery-2.1.1.min.js"></script>
+
+<script type="text/javascript" charset="utf-8">
+    var socket = io.connect("/console");
+    socket.on('console_data', function(data) {
+        console.log(data);
+        $("#console-output").append(data);
+    });
+    
+    socket.on('status_change', function(data) {
+        $("#vm-status").html(data);
+    });
+    
+    $("#start-button").click(function() {
+        socket.emit('command', {'command': 'up', 'vm': {{ vm.pk }}});
+    });
+    
+    $("#halt-button").click(function() {
+        socket.emit('command', {'command': 'halt', 'vm': {{ vm.pk }}});
+    });
+    
+</script>
+{% endblock %}

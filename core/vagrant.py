@@ -3,17 +3,19 @@ from os import environ
 
 import re
 
+
+
 class Vagrant(object):
     """
     Runs specified vagrant commands.
     """
     
-    def __init__(self, path):
+    def __init__(self, vm):
         """
-        path should be the directory containing the Vagrantfile
+        VM should be a model that represents the VM
         """
         
-        self.path = path
+        self.vm = vm
         
     def run_command(self, command, *args):
         """
@@ -22,10 +24,10 @@ class Vagrant(object):
         """
         
         env = environ.copy()
-        env['VAGRANT_CWD'] = self.path
+        env['VAGRANT_CWD'] = self.vm.get_vagrant_dir()
         
         process = Popen(["vagrant", command] + list(args),
-                        env=env)
+                        env=env, stdout=PIPE, stderr=PIPE)
         
         return process
         
@@ -51,6 +53,15 @@ class Vagrant(object):
         """
         
         return self.run_command("destroy")
+    
+    def status(self):
+        """
+        Gets the status of the underlying vagrant VM.
+        """
+        
+        p = self.run_command("status", "--machine-readable")
+        data = [x for x in p.stdout.readlines() if ",state," in x]
+        return data[0].split(',')[-1].strip()
         
     def gather_ips(self):
         """
